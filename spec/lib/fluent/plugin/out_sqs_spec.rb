@@ -1,8 +1,8 @@
 require 'spec_helper'
 require 'fluent/plugin/out_sqs'
 
-describe Fluent::Plugin::SQSOutput do
-  let(:driver) { Fluent::Test::Driver::Output.new(Fluent::Plugin::SQSOutput) }
+describe Fluent::SQSOutput do
+  let(:driver) { Fluent::Test::BufferedOutputTestDriver.new(Fluent::SQSOutput) }
   subject { driver.instance }
 
   before { Fluent::Test.setup }
@@ -161,9 +161,7 @@ describe Fluent::Plugin::SQSOutput do
       expect(driver.instance).to receive(:queue).twice.and_return("QUEUE_NAME")
       expect(subject.queue).to receive(:send_messages).with(entries: [{ id: kind_of(String), message_body: body, delay_seconds: 0 }])
 
-      driver.run(default_tag: "test") do
-        driver.feed(record)
-      end
+      driver.emit(record).run
     end
   end
 end

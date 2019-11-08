@@ -1,18 +1,17 @@
-require 'fluent/plugin/output'
+require 'fluent/output'
 require 'aws-sdk-sqs'
 
-module Fluent::Plugin
+module Fluent
   SQS_BATCH_SEND_MAX_MSGS = 10
   SQS_BATCH_SEND_MAX_SIZE = 262_144
 
-  class SQSOutput < Output
+  class SQSOutput < BufferedOutput
     Fluent::Plugin.register_output('sqs', self)
 
-    helpers :compat_parameters, :inject
-
-    DEFAULT_BUFFER_TYPE = "memory"
-
+    include SetTagKeyMixin
     config_set_default :include_tag_key, false
+
+    include SetTimeKeyMixin
     config_set_default :include_time_key, true
 
     config_param :aws_key_id, :string, default: nil, secret: true
@@ -26,12 +25,7 @@ module Fluent::Plugin
     config_param :tag_property_name, :string, default: '__tag'
     config_param :message_group_id, :string, default: nil
 
-    config_section :buffer do
-      config_set_default :@type, DEFAULT_BUFFER_TYPE
-    end
-
     def configure(conf)
-      compat_parameters_convert(conf, :buffer, :inject)
       super
 
       if (!@queue_name.nil? && @queue_name.end_with?('.fifo')) || (!@sqs_url.nil? && @sqs_url.end_with?('.fifo'))
@@ -69,19 +63,10 @@ module Fluent::Plugin
       @queue
     end
 
-    def format(tag, time, record)
+    def format(tag, _time, record)
       record[@tag_property_name] = tag if @include_tag
-      record = inject_values_to_record(tag, time, record)
 
       record.to_msgpack
-    end
-
-    def formatted_to_msgpack_binary
-      true
-    end
-
-    def multi_workers_ready?
-      true
     end
 
     def write(chunk)
