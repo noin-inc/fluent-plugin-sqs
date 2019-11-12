@@ -1,5 +1,5 @@
-require 'fluent/output'
-require 'aws-sdk'
+require 'fluent/input'
+require 'aws-sdk-sqs'
 
 module Fluent
   class SQSInput < Input
